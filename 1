@@ -1,0 +1,52 @@
+const { ethers } = require("ethers");
+
+
+const RPC_URL = "https://api.mainnet.abs.xyz"; 
+const PRIVATE_KEYS = [
+"",""
+];
+const CONTRACT_ADDRESS = "0x24434870e0643f9eaa877a83cd294715dadf2273";
+const ABI = [
+  "function publicFreeMint() public payable", 
+];
+
+async function mintNFTs() {
+  try {
+    const provider = new ethers.JsonRpcProvider(RPC_URL);
+    const gasPrice = (await provider.getFeeData()).gasPrice;
+    const adjustedGasPrice = gasPrice * 3n;
+    console.log("Minting.");
+    const mintPromises = PRIVATE_KEYS.map(async (privateKey) => {
+      try {
+        const wallet = new ethers.Wallet(privateKey, provider);
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, wallet);
+        const tx = await contract.publicFreeMint({
+          value: ethers.parseEther("0"),
+          gasPrice: adjustedGasPrice,
+        });
+
+        console.log(`Transaction wallet ${wallet.address}! Hash:`, tx.hash);
+
+        const receipt = await tx.wait();
+        console.log(`Transaction confirmed for wallet ${wallet.address}! Receipt:`, receipt);
+      } catch (error) {
+        console.error(`Error minting `, error);
+      }
+    });
+
+   
+    await Promise.all(mintPromises);
+
+    console.log("All minting transactions complete!");
+  } catch (error) {
+    console.error("Error:", error);
+  }
+}
+
+
+(async () => {
+  await mintNFTs();
+  setInterval(() => {
+    mintNFTs();
+  }, 1000);
+})();
